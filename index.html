@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spellie | Wordle for Kids</title>
+    <meta
+      name="description"
+      content="A kid-friendly version of the popular Wordle game"
+    />
+
+    <meta property="og:url" content="https://spelliegame.com" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Spellie - A daily word game for young spellers"
+    />
+    <meta
+      property="og:description"
+      content="Wordle for kids. 3 daily puzzles for children of all ages."
+    />
+    <meta property="og:image" content="https://spelliegame.com/preview.png" />
+    <meta name="twitter:image" content="https://spelliegame.com/preview.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
+    <link rel="manifest" href="site.webmanifest" />
+
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    />
+    <link href="./public/main.css" rel="stylesheet" />
+    <script src="public/amplitude.js"></script>
+  </head>
+
+  <body
+    x-data="gameState()"
+    x-init="initialLoad()"
+    :class="`theme-${settings.theme} page-${page.replace('#', '')}`"
+    @keyup.document="keyPressed"
+    @hashchange.window="updatePage(location.hash)"
+  >
+    <header>
+      <nav>
+        <div>
+          <a href="#about" class="nav-link">
+            <i class="material-icons">info</i>
+          </a>
+          <a
+            @click="share"
+            @keyup.enter="share"
+            tabindex="0"
+            x-show="canShare"
+            class="nav-link"
+          >
+            <i class="material-icons">share</i>
+          </a>
+        </div>
+        <div class="title">
+          <a x-bind:href="`#${difficulty}`">Spellie</a>
+          <span x-cloak x-show="puzzleId === 50" title="April Fools!">🙃</span>
+        </div>
+        <div>
+          <a href="#collection" class="nav-link">
+            <span
+              class="nav-notification"
+              x-cloak
+              x-show="sessionNewEmojis.length > 0"
+              x-text="sessionNewEmojis.length"
+            ></span>
+            <i class="material-icons">collections</i>
+          </a>
+          <a href="#settings" class="nav-link">
+            <i class="material-icons">settings</i>
+          </a>
+        </div>
+      </nav>
+      <div class="nav-tabs" x-cloak x-show="isGamePage">
+        <button
+          :class="{ 'active': difficulty === 'easy' }"
+          @click="updateDifficulty('easy')"
+        >
+          Easy
+        </button>
+        <button
+          :class="{ 'active': difficulty === 'medium' }"
+          @click="updateDifficulty('medium')"
+        >
+          Medium
+        </button>
+        <button
+          :class="{ 'active': difficulty === 'hard' }"
+          @click="updateDifficulty('hard')"
+        >
+          Hard
+        </button>
+      </div>
+    </header>
+    <main :class="`target-${target.length}`">
+      <div class="about-content" x-show="page === '#about'" x-cloak>
+        <div class="subhead">
+          <h1>About</h1>
+          <div>
+            <a x-bind:href="`#${difficulty}`">
+              <i class="material-icons">close</i>
+            </a>
+          </div>
+        </div>
+        <p>Spellie is a daily word puzzle game for young spellers.</p>
+        <p>
+          There are 3 daily puzzles of increasing difficulty. The easy puzzle
+          uses short words within the Grade 2 vocabulary. The hard mode is
+          challenging, but uses words within the Grade 5 vocabulary.
+        </p>
+
+        <h2>How to play</h2>
+        <p>
+          You have six (6) tries to guess the daily word, using the feedback to
+          narrow down the options.
+        </p>
+        <div class="example-word">
+          <div class="guesses-word" :class="settings.case">
+            <div class="guesses-tile match">
+              <span>W</span>
+            </div>
+            <div class="guesses-tile miss">
+              <span>O</span>
+            </div>
+            <div class="guesses-tile present">
+              <span>R</span>
+            </div>
+            <div class="guesses-tile miss">
+              <span>D</span>
+            </div>
+          </div>
+        </div>
+        <ul>
+          <li>
+            The letter
+            <span :class="settings.case" class="heavy-letter">W</span>
+            is in the word and in the right spot.
+          </li>
+          <li>
+            The letter
+            <span :class="settings.case" class="heavy-letter">R</span>
+            is in the word but in the wrong spot.
+          </li>
+          <li>
+            The letters
+            <span :class="settings.case" class="heavy-letter">O</span> and
+            <span :class="settings.case" class="heavy-letter">D</span>
+            are not in the word in any spot.
+          </li>
+        </ul>
+
+        <h2>Creators</h2>
+        <ul>
+          <li>Christopher Porter</li>
+          <li>David Hirtle</li>
+          <li>James Dodds</li>
+          <li>
+            Many other
+            <a href="https://github.com/canadianveggie/spellie" target="_blank"
+              >contributors</a
+            >
+          </li>
+        </ul>
+        <div class="social-links">
+          <a href="https://twitter.com/SpellieGame" target="_blank"
+            ><img src="public/twitter.png" alt="Twitter"
+          /></a>
+          <a href="https://github.com/canadianveggie/spellie" target="_blank"
+            ><img src="public/github.png" alt="GitHub"
+          /></a>
+        </div>
+      </div>
+      <div class="game-content" x-show="isGamePage">
+        <div class="guesses-grid">
+          <template
+            x-for="(guess, guessIndex) in guesses"
+            :key="`${gameId}-${guessIndex}`"
+          >
+            <div class="guesses-row" :class="settings.case">
+              <template x-for="(letter, letterIndex) in guess">
+                <div
+                  class="guesses-tile"
+                  :class="[letter.state, isCursor(guessIndex, letterIndex) ? 'cursor' : '']"
+                  @click="selectTile(guessIndex, letterIndex)"
+                >
+                  <span
+                    x-show="letter.letter"
+                    x-text="masked ? '' : letter.letter"
+                    x-transition:enter="pop"
+                  ></span>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+        <div class="hint-area" x-show="hintsAvailable">
+          <button
+            class="hint-button"
+            @click="showHint"
+            x-show="hint.available"
+            x-transition:enter.duration.500ms
+            x-cloak
+          >
+            Need a hint? 🤔
+          </button>
+        </div>
+        <div x-show="solved && endGame" x-cloak>
+          <div
+            x-transition.enter.duration.1000ms
+            x-transition.leave.duration.0ms
+            class="victory"
+          >
+            <span class="emoji" x-text="victoryEmoji"></span> You win!
+          </div>
+        </div>
+        <div
+          x-cloak
+          x-show="failed && endGame"
+          x-transition:enter.duration.1000ms
+          class="defeat"
+        >
+          <span x-show="masked">Nice try!</span>
+          <span x-cloak x-show="!masked"
+            >It was: <span x-text="target"></span
+          ></span>
+        </div>
+        <div x-cloak x-show="endGame" class="masked-game-buttons">
+          <button @click="masked ? unmask : mask">
+            <span x-text="masked ? 'Reveal' : 'Hide'"></span>
+            <i
+              class="material-icons"
+              aria-hidden="true"
+              x-text="masked ? 'visibility' : 'visibility_off'"
+            ></i>
+          </button>
+          <button @click="resetLevel">
+            <span>Reset</span>
+            <i class="material-icons" aria-hidden="true">replay</i>
+          </button>
+          <button @click="share" x-show="canShare">
+            <span>Share</span>
+            <i class="material-icons" aria-hidden="true">share</i>
+          </button>
+        </div>
+        <div class="keyboard">
+          <template x-if="!endGame">
+            <template
+              x-for="(keyboardRow, rowIndex) in keyboard"
+              :key="`${gameId}-${rowIndex}`"
+            >
+              <div class="keyboard-row">
+                <template
+                  x-for="letter in keyboardRow"
+                  :key="`${gameId}-${letter.label}`"
+                >
+                  <div
+                    class="key"
+                    :class="[settings.case, 'key-' + letter.type, letter.state, hint.shown && letter.label === hint.letter ? 'pulse' : '']"
+                    @click="addLetter(letter)"
+                    @keyup.enter.stop="addLetter(letter)"
+                    role="button"
+                    tabindex="0"
+                  >
+                    <template x-if="letter.type === 'back'">
+                      <i class="material-icons">backspace</i>
+                    </template>
+                    <template x-if="letter.type !== 'back'">
+                      <span x-text="letter.label"></span>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </template>
+        </div>
+      </div>
+      <div class="collection-content" x-show="page === '#collection'" x-cloak>
+        <div class="subhead">
+          <h1>Collection</h1>
+          <div>
+            <a x-bind:href="`#${difficulty}`" class="close-link">
+              <i class="material-icons">close</i>
+            </a>
+          </div>
+        </div>
+
+        <p x-show="unlockedEmojis.length === 0">
+          Your word guesses can unlock hidden emojis.<br />Maybe you'll find one
+          next game.
+        </p>
+        <p x-show="unlockedEmojis.length === 1">
+          You found your first emoji! Great job.<br />How many more can you
+          find?
+        </p>
+        <p x-show="unlockedEmojis.length > 1">
+          You've already found
+          <strong x-text="unlockedEmojis.length"></strong> emojis. That's
+          amazing!<br />Can you find any more?
+        </p>
+        <div class="collection-tiles">
+          <div
+            class="guesses-word"
+            x-show="unlockedEmojis.length === 0"
+            :class="settings.case"
+          >
+            <div class="guesses-tile emoji-tile">
+              <span>❓</span>
+            </div>
+            <template x-for="letter in '????'">
+              <div class="guesses-tile match">
+                <span x-text="letter"></span>
+              </div>
+            </template>
+          </div>
+          <template x-for="(collectable, i) in unlockedEmojis">
+            <div
+              class="guesses-word"
+              x-show="collectable.unlocked"
+              :class="[settings.case]"
+            >
+              <div class="guesses-tile emoji-tile">
+                <img
+                  :src="getEmojiImage(collectable.emoji)"
+                  :onerror="`this.onerror=null;this.replaceWith('${collectable.emoji}')`"
+                  class="emoji-image"
+                  :class="collectable.new ? 'pulse' : ''"
+                  width="32"
+                  height="32"
+                  :alt="collectable.word"
+                />
+              </div>
+              <template x-for="letter in collectable.word">
+                <div
+                  class="guesses-tile"
+                  :class="collectable.new ? 'present' : 'match'"
+                >
+                  <span x-text="letter"></span>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+        <p x-show="unlockedEmojis.length > 1">
+          Psst. There are over
+          <span
+            x-text="Math.floor(Object.keys(emojis).length / 100)  * 100"
+          ></span>
+          emojis in total...
+        </p>
+      </div>
+      <div class="settings-content" x-show="page === '#settings'" x-cloak>
+        <div class="subhead">
+          <h1>Settings</h1>
+          <div>
+            <a x-bind:href="`#${difficulty}`" class="close-link">
+              <i class="material-icons">close</i>
+            </a>
+          </div>
+        </div>
+        <section>
+          <h2>Keyboard layout</h2>
+          <div>
+            <input
+              type="radio"
+              id="keyboardLayout-atoz"
+              value="atoz"
+              x-model="settings.keyboardLayout"
+              @change="updateSettings"
+            />
+            <label for="keyboardLayout-atoz">A to Z</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="keyboardLayout-qwerty"
+              value="qwerty"
+              x-model="settings.keyboardLayout"
+              @change="updateSettings"
+            />
+            <label for="keyboardLayout-qwerty">QWERTY</label>
+          </div>
+        </section>
+        <section>
+          <h2>Letters</h2>
+          <div>
+            <input
+              type="radio"
+              id="case-lowercase"
+              value="lowercase"
+              x-model="settings.case"
+              @change="updateSettings"
+            />
+            <label for="case-lowercase">lowercase</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="case-uppercase"
+              value="uppercase"
+              x-model="settings.case"
+              @change="updateSettings"
+            />
+            <label for="case-uppercase">UPPERCASE</label>
+          </div>
+        </section>
+        <section>
+          <h2>Spell checker</h2>
+          <div>
+            <input
+              type="radio"
+              id="spellChecker-off"
+              value="off"
+              x-model="settings.spellChecker"
+              @change="updateSettings"
+            />
+            <label for="spellChecker-off">Off</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="spellChecker-on"
+              value="on"
+              x-model="settings.spellChecker"
+              @change="updateSettings"
+            />
+            <label for="spellChecker-on">On</label>
+          </div>
+        </section>
+        <section>
+          <h2>Hints</h2>
+          <div>
+            <input
+              type="radio"
+              id="hints-off"
+              value="off"
+              x-model="settings.hints"
+              @change="updateSettings"
+            />
+            <label for="hints-off">Off</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="hints-on"
+              value="on"
+              x-model="settings.hints"
+              @change="updateSettings"
+            />
+            <label for="hints-on">On</label>
+          </div>
+        </section>
+        <section>
+          <h2>Theme</h2>
+          <div>
+            <input
+              type="radio"
+              id="theme-blue"
+              value="blue"
+              x-model="settings.theme"
+              @change="updateSettings"
+            />
+            <label for="theme-blue">Default</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="theme-high"
+              value="high"
+              x-model="settings.theme"
+              @change="updateSettings"
+            />
+            <label for="theme-high">High contrast</label>
+          </div>
+        </section>
+        <section>
+          <h2>Sharing theme</h2>
+          <template x-for="entries in Object.entries(emojiMatchThemes)">
+            <div class="sharing-theme-row">
+              <input
+                :id="'sharing-emojis-' + entries[0]"
+                type="radio"
+                :value="entries[0]"
+                x-model="settings.sharingEmojis"
+                @change="updateSettings"
+              />
+              <label
+                :for="'sharing-emojis-' + entries[0]"
+                dddx-text="entries[1].match + entries[1].present + entries[1].miss"
+              >
+                <img
+                  :src="getEmojiImage(entries[1].match)"
+                  class="emoji-image"
+                  width="20"
+                  height="20"
+                  :onerror="`this.onerror=null;this.replaceWith('${entries[1].match}')`"
+                  :alt="entries[1].match"
+                />
+                <img
+                  :src="getEmojiImage(entries[1].present)"
+                  class="emoji-image"
+                  width="20"
+                  height="20"
+                  :onerror="`this.onerror=null;this.replaceWith('${entries[1].present}')`"
+                  :alt="entries[1].present"
+                />
+                <img
+                  :src="getEmojiImage(entries[1].miss)"
+                  class="emoji-image"
+                  width="20"
+                  height="20"
+                  :onerror="`this.onerror=null;this.replaceWith('${entries[1].miss}')`"
+                  :alt="entries[1].miss"
+                />
+              </label>
+            </div>
+          </template>
+        </section>
+      </div>
+      <div
+        x-data="noticesHandler()"
+        class="notice"
+        @notice.window="notify($event.detail)"
+        x-cloak
+        x-show="notice && notice.visible"
+        @click="remove(notice && notice.id)"
+        @keyup.document.escape="remove(notice && notice.id)"
+        x-html="message"
+        x-transition:enter="fadein"
+      ></div>
+    </main>
+  </body>
+
+  <script src="public/puzzles.js"></script>
+  <script src="public/wordHints.js"></script>
+  <script src="public/hint.js"></script>
+  <script src="public/emojis.js"></script>
+  <script src="public/mobileCheck.js"></script>
+  <script src="public/dictionary.js"></script>
+  <script>
+    /* global amplitude, combineKnowledge, compareTargetAndGuess, emojis, getEmojiImage, getHint, getTodayPuzzles, getTodayPuzzleId, guessesAsEmojis, keysToKnowledge, onMobile, validWords */
+
+    const identify = new amplitude.Identify().set(
+      "host",
+      window.location.hostname
+    );
+    amplitude.getInstance().identify(identify);
+
+    const puzzleId = getTodayPuzzleId();
+    const maxGuesses = 6;
+    initScalingFontSize();
+
+    // Add emoji keys to valid words
+    // So that ELSA and ROFL are accepted
+    Object.keys(emojis).forEach((key) => validWords.add(key));
+
+    function initialKeys() {
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+      const keyboard = letters.map((letter) => ({
+        type: "letter",
+        label: letter,
+        state: "available",
+      }));
+      keyboard.push({
+        type: "back",
+        label: "",
+        state: "unavailable",
+      });
+      keyboard.push({
+        type: "enter",
+        label: "guess",
+        state: "unavailable",
+      });
+      return keyboard;
+    }
+
+    function emptyGuesses(wordLength, guessLength) {
+      const guesses = [];
+      for (let i = 0; i < guessLength; i++) {
+        const guess = [];
+        for (let j = 0; j < wordLength; j++) {
+          guess.push({ letter: "", state: "pending" });
+        }
+        guesses.push(guess);
+      }
+      return guesses;
+    }
+
+    const DIFFICULTIES = ["easy", "medium", "hard"];
+
+    function getInitialDifficulty() {
+      const page = window.location.hash.replace("#", "");
+      if (DIFFICULTIES.includes(page)) {
+        return page;
+      }
+      return "easy";
+    }
+
+    // eslint-disable-next-line no-unused-vars
+    function gameState() {
+      const DEFAULT_SETTINGS = {
+        case: "lowercase", // lowercase, uppercase
+        hints: "on", // on, off
+        keyboardLayout: "atoz", // atoz, qwerty
+        sharingEmojis: "nature", // fruit, vegetable, nature, tree
+        spellChecker: "on", // on, off
+        theme: "blue", // blue, high
+      };
+      const DEFAULT_STATISTICS = {};
+      DIFFICULTIES.forEach((difficulty) => {
+        DEFAULT_STATISTICS[difficulty] = {
+          success: 0,
+          fail: 0,
+          guesses: [0, 0, 0, 0, 0, 0, 0],
+          solved: {},
+        };
+      });
+      const DEFAULT_HINT = {
+        available: false,
+        shown: false,
+        message: null,
+        timer: null,
+      };
+
+      const HINT_DELAY = 10 * 1000;
+
+      return {
+        settings: {}, // placeholder until x-init
+        page: window.location.hash,
+        difficulty: getInitialDifficulty(),
+        puzzleId,
+        target: "",
+        guesses: [],
+        solved: false,
+        failed: false,
+        masked: false,
+        endGame: false,
+        repeatedGame: false,
+        gameId: 0,
+        hint: DEFAULT_HINT,
+        currentGuessIndex: 0,
+        cursor: 0,
+        cursorMode: false,
+        keys: initialKeys(),
+        emojiCollection: [],
+        newEmojis: [],
+        hintKnowledge: {},
+        updatePage(page) {
+          this.page = page;
+          const titles = {
+            "#easy": "Spellie | Easy",
+            "#medium": "Spellie | Medium",
+            "#hard": "Spellie | Hard",
+            "#collection": "Spellie | Emoji Collection",
+            "#settings": "Spellie | Settings",
+            "#about": "Spellie | About",
+          };
+          document.title = titles[page] || "Spellie | Wordle for Kids";
+        },
+        addLetter(letterState) {
+          if (this.solved || this.failed) {
+            return;
+          }
+          if (letterState.type === "enter") {
+            if (!this.isCurrentWordComplete()) {
+              return;
+            }
+            if (this.isCurrentWordInvalid()) {
+              this.showNotice("Check your spelling... 🤔");
+              return;
+            }
+            this.currentGuess.forEach(
+              (letterGuess) => (letterGuess.state = "submitted")
+            );
+            this.resetHint();
+            this.checkAnswer();
+            if (!this.solved && !this.failed) {
+              this.cursor = this.cursorReverse ? this.target.length - 1 : 0;
+              this.prepareHint();
+            }
+            this.updateControls();
+            this.saveGameState();
+            this.cursorMode = false;
+          } else if (letterState.type === "back") {
+            const deleteIndex = this.cursorMode
+              ? this.cursor
+              : this.cursorAdjust(-1);
+            if (
+              deleteIndex >= 0 &&
+              deleteIndex < this.currentGuess.length &&
+              this.currentGuess[deleteIndex].state !== "match" // keep freebie
+            ) {
+              this.currentGuess[deleteIndex].letter = "";
+              if (this.cursorMode) {
+                this.cursorMode = false;
+              } else {
+                if (this.cursorReverse) {
+                  this.cursor = Math.min(
+                    this.target.length - 1,
+                    this.cursor + 1
+                  );
+                } else {
+                  this.cursor = Math.max(0, this.cursor - 1);
+                }
+              }
+              this.updateControls();
+            }
+          } else if (letterState.type === "letter") {
+            if (
+              this.currentGuess &&
+              this.cursor >= 0 &&
+              this.cursor < this.currentGuess.length
+            ) {
+              this.currentGuess[this.cursor].letter =
+                letterState.label.toUpperCase();
+              this.cursor = this.cursorAdjust(1);
+              this.cursorMode = false;
+              this.updateControls();
+            }
+          }
+        },
+        checkAnswer() {
+          if (this.currentGuessIndex === 0) {
+            amplitude.getInstance().logEvent("level_start", {
+              level_name: this.level,
+              difficulty: this.difficulty,
+              repeatedGame: this.repeatedGame,
+            });
+          }
+          const result = compareTargetAndGuess(this.target, this.currentWord);
+          result.forEach((letterResult, i) => {
+            this.currentGuess[i].state = letterResult;
+          });
+          this.updateKeyboardForGuess(this.currentWord);
+          this.checkEmojiGuess();
+          this.solved = this.currentWord === this.target;
+          this.currentGuessIndex += 1;
+          if (this.solved) {
+            this.levelEnd();
+            return;
+          }
+          if (
+            !this.solved &&
+            !this.failed &&
+            this.currentGuessIndex >= this.guesses.length
+          ) {
+            this.failed = true;
+            this.levelEnd();
+          }
+        },
+        checkEmojiGuess() {
+          const emoji = emojis[this.currentWord];
+          const alreadyFound = this.unlockedEmojis.some(
+            (entry) => entry.word === this.currentWord
+          );
+          if (emoji && !alreadyFound) {
+            this.showNotice(`You unlocked #${emoji}# !`);
+            this.newEmojis.push(emoji);
+            const collection = this.getFromLocalStorage("collection", {
+              unlocked: {},
+            });
+            collection.unlocked[this.currentWord] = {
+              date: new Date().toISOString(),
+            };
+            localStorage.setItem("collection", JSON.stringify(collection));
+            const collectable = this.emojiCollection.find(
+              (c) => c.word === this.currentWord
+            );
+            collectable.unlocked = true;
+            collectable.new = true;
+          }
+        },
+        updateKeyboardForGuess(guess) {
+          const result = compareTargetAndGuess(this.target, guess);
+          result.forEach((letterResult, i) => {
+            const label = guess[i];
+            const key = this.keys.find((letter) => letter.label === label);
+            // Don't overwrite match or present with miss
+            if (
+              !key ||
+              key.state === "match" ||
+              (key.state === "present" && letterResult === "miss")
+            ) {
+              return;
+            }
+            key.state = letterResult;
+          });
+        },
+        updateKeyboardForHints(hintKnowledge) {
+          (hintKnowledge.misses || []).forEach((missLetter) => {
+            const key = this.keys.find((letter) => letter.label === missLetter);
+            key.state = "miss";
+          });
+          (hintKnowledge.presents || []).forEach((presentLetter) => {
+            const key = this.keys.find(
+              (letter) => letter.label === presentLetter
+            );
+            if (key.state === "available") {
+              key.state = "present";
+            }
+          });
+        },
+        updateKeyboard() {
+          this.keys.forEach((key) => {
+            if (key.type === "letter") {
+              key.state = "available";
+            }
+          });
+          this.guessWords.forEach((guessWord) => {
+            this.updateKeyboardForGuess(guessWord);
+          });
+          this.updateKeyboardForHints(this.hintKnowledge);
+          this.updateControls();
+        },
+        get keyboard() {
+          const aToZ = ["ABCDEFGHI", "JKLMNOPQR", "STUVWXYZ"];
+          const qwerty = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+
+          const layout =
+            this.settings.keyboardLayout === "qwerty" ? qwerty : aToZ;
+          const keyboard = [];
+          layout.forEach((row) => {
+            const rowKeys = row.split("").map((letter) => {
+              return this.keys.find((key) => key.label === letter);
+            });
+            keyboard.push(rowKeys);
+          });
+          keyboard[2].push(this.keys.find((key) => key.type === "back"));
+          keyboard[3] = [this.keys.find((key) => key.type === "enter")];
+          return keyboard;
+        },
+        updateControls() {
+          const backKey = this.keys.find((letter) => letter.type === "back");
+          const enterKey = this.keys.find((letter) => letter.type === "enter");
+          backKey.state = this.cursor > 0 ? "available" : "unavailable";
+          if (this.cursorReverse) {
+            backKey.state =
+              this.cursor < this.target.length - 1
+                ? "available"
+                : "unavailable";
+          }
+          enterKey.state =
+            this.isCurrentWordComplete() && !this.isCurrentWordInvalid()
+              ? "available pulse-small"
+              : "unavailable";
+        },
+        keyPressed(e) {
+          if (e.key === "Tab") return;
+
+          if (e.key === "Enter" || e.key === " ") {
+            e.target.blur();
+            this.addLetter({ type: "enter" });
+          } else if (e.key === "Backspace") {
+            e.target.blur();
+            this.addLetter({ type: "back" });
+          } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+            const delta = e.key === "ArrowLeft" ? -1 : 1;
+            const nextCursorIndex = Math.min(
+              this.target.length - 1,
+              Math.max(0, this.cursor + delta)
+            );
+            if (this.currentGuess[nextCursorIndex].state === "match") {
+              return; // don't allow reaching a freebie letter
+            }
+            this.cursor = nextCursorIndex;
+            this.cursorMode = true;
+          } else if (
+            /^[a-zA-Z]$/.test(e.key) &&
+            !e.altKey &&
+            !e.ctrlKey &&
+            !e.metaKey
+          ) {
+            e.target.blur(); // user is no longer navigating by tab
+            this.addLetter({ type: "letter", label: e.key });
+          }
+        },
+        selectTile(guessIndex, letterIndex) {
+          if (
+            !this.solved &&
+            guessIndex === this.currentGuessIndex &&
+            this.currentGuess[letterIndex].state !== "match"
+          ) {
+            this.cursor = letterIndex;
+            this.cursorMode = true;
+          }
+        },
+        get currentGuess() {
+          return this.guesses[this.currentGuessIndex];
+        },
+        guessToWord(guess) {
+          return (
+            guess &&
+            guess.map((letterGuess) => letterGuess.letter || " ").join("")
+          );
+        },
+        get lastWord() {
+          const guess = this.guesses[this.currentGuessIndex - 1];
+          return guess ? this.guessToWord(guess) : "";
+        },
+        get currentWord() {
+          return this.guessToWord(this.currentGuess);
+        },
+        get guessWords() {
+          return this.guesses
+            .slice(0, this.currentGuessIndex)
+            .map((guess) => this.guessToWord(guess));
+        },
+        get guessWordDictionary() {
+          return this.guessWords.reduce((acc, guessWord, i) => {
+            acc[`guess${i + 1}`] = guessWord;
+            return acc;
+          }, {});
+        },
+        get guessEmojis() {
+          return this.guessWords.map((guessWord) => emojis[guessWord]);
+        },
+        get onLastGuess() {
+          return this.currentGuessIndex === maxGuesses - 1;
+        },
+        isCurrentWordComplete() {
+          return (
+            this.currentWord &&
+            this.currentWord.length === this.target.length &&
+            this.currentWord.indexOf(" ") < 0
+          );
+        },
+        isCurrentWordInvalid() {
+          return (
+            (this.settings.spellChecker === "on" || this.onLastGuess) &&
+            !validWords.has(this.currentWord)
+          );
+        },
+        isCursor(guessIndex, letterIndex) {
+          return (
+            guessIndex === this.currentGuessIndex && letterIndex === this.cursor
+          );
+        },
+        cursorAdjust(delta) {
+          if (this.cursorReverse) {
+            return this.cursor - delta;
+          } else {
+            return this.cursor + delta;
+          }
+        },
+        get victoryEmoji() {
+          const victoryEmojis =
+            this.puzzleId === 50
+              ? ["👽", "🦸‍♀️", "😻", "🥸", "🍪", "🥵"]
+              : ["🏆", "🤩", "🥳", "😁", "🙂", "👍"];
+          return (
+            victoryEmojis[this.currentGuessIndex - 1] ||
+            victoryEmojis[victoryEmojis.length - 1]
+          );
+        },
+        /** First letter provided free for 4-letter words */
+        prepareFreebie() {
+          const freebieIndex = this.cursorReverse ? this.target.length - 1 : 0;
+          if (
+            this.target.length <= 4 &&
+            this.guesses[0][freebieIndex].letter === ""
+          ) {
+            this.addLetter({
+              type: "letter",
+              label: this.target[freebieIndex],
+            });
+            this.guesses[0][freebieIndex].state = "match"; // set this already as signal to player
+          }
+        },
+        get hintsAvailable() {
+          return this.settings.hints === "on" && this.difficulty !== "hard";
+        },
+        prepareHint() {
+          if (
+            this.difficulty === "hard" ||
+            this.currentGuessIndex < 2 ||
+            this.solved ||
+            this.failed
+          ) {
+            this.resetHint();
+            return;
+          }
+
+          try {
+            const hint = getHint(
+              this.target,
+              combineKnowledge(keysToKnowledge(this.keys), this.hintKnowledge),
+              this.settings,
+              this.currentGuessIndex,
+              this.lastWord
+            );
+            if (hint) {
+              this.hint = hint;
+              this.hint.timer = setTimeout(() => {
+                this.hint.available = true;
+              }, HINT_DELAY);
+            } else {
+              this.resetHint();
+            }
+          } catch (e) {
+            console.error("Unable to prepare a hint.", e);
+          }
+        },
+        resetHint() {
+          clearTimeout(this.hint.timer);
+          this.hint = { ...DEFAULT_HINT };
+        },
+        showHint() {
+          if (!this.hint.shown) {
+            amplitude.getInstance().logEvent("show_hint", {
+              level_name: this.level,
+              difficulty: this.difficulty,
+              repeatedGame: this.repeatedGame,
+              guess: this.currentGuessIndex + 1,
+              message: this.hint.message,
+              letter: this.hint.letter,
+            });
+            this.hint.shown = true;
+          }
+          this.showNotice(this.hint.message, "hint");
+          const newKnowledge = {
+            presents: this.hint.letter ? [this.hint.letter] : [],
+            misses: this.hint.misses || [],
+          };
+          this.hintKnowledge = combineKnowledge(
+            this.hintKnowledge,
+            newKnowledge
+          );
+          this.updateKeyboardForHints(this.hintKnowledge);
+        },
+        showNotice(text, type) {
+          window.dispatchEvent(
+            new CustomEvent("notice", {
+              detail: { text, type },
+            })
+          );
+        },
+        initialLoad() {
+          this.loadSettings();
+          this.loadGameState();
+          this.loadCollection();
+        },
+        loadGameState() {
+          try {
+            let initialState = this.getFromLocalStorage(
+              `game-state-${this.difficulty}`,
+              {}
+            );
+            if (initialState.puzzleId !== this.puzzleId) {
+              initialState = {};
+            }
+            // Create a unique id for each game state so that we redraw the grid and keyboard properly
+            this.gameId += 1;
+            this.level =
+              initialState.level || `${this.difficulty}-${this.puzzleId}`;
+            this.target =
+              initialState.target || getTodayPuzzles()[this.difficulty];
+
+            this.guesses =
+              initialState.guesses ||
+              emptyGuesses(this.target.length, maxGuesses);
+            this.solved = initialState.solved || false;
+            this.failed = initialState.failed || false;
+            this.repeatedGame = initialState.repeatedGame || false;
+            this.masked = this.solved || this.failed;
+            this.endGame = this.solved || this.failed;
+            this.currentGuessIndex = initialState.currentGuessIndex || 0;
+            this.cursorReverse = this.puzzleId === 50;
+            this.cursor =
+              initialState.cursor ||
+              (this.cursorReverse ? this.target.length - 1 : 0);
+            this.cursorMode = initialState.cursorMode || false;
+            this.newEmojis = initialState.newEmojis || [];
+            this.hintKnowledge = initialState.hintKnowledge || {};
+            this.updateKeyboard();
+            this.resetHint();
+            clearTimeout(this.endGameTimer);
+            this.prepareHint();
+            this.prepareFreebie();
+          } catch (err) {
+            console.error(err);
+          }
+        },
+        saveGameState() {
+          localStorage.setItem(
+            `game-state-${this.difficulty}`,
+            JSON.stringify(this.toJson())
+          );
+        },
+        loadSettings() {
+          const dayOverwrites =
+            this.puzzleId === 50 ? { sharingEmojis: "poop" } : {};
+          this.settings = {
+            ...DEFAULT_SETTINGS,
+            ...this.getFromLocalStorage("settings", {}),
+            ...dayOverwrites,
+          };
+          if (this.settings.sharingEmojis === "") {
+            // Removing random default for now
+            this.settings.sharingEmojis = DEFAULT_SETTINGS.sharingEmojis;
+          }
+        },
+        saveSettings() {
+          localStorage.setItem("settings", JSON.stringify(this.settings));
+          this.loadGameState();
+        },
+        updateSettings() {
+          this.saveSettings();
+          this.showNotice("Settings updated");
+        },
+        isGamePage() {
+          return ["", ...DIFFICULTIES.map((d) => `#${d}`)].includes(this.page);
+        },
+        updateDifficulty(difficulty) {
+          this.difficulty = difficulty;
+          window.location.hash = `#${difficulty}`;
+          this.loadGameState();
+        },
+        loadCollection() {
+          const collection = this.getFromLocalStorage("collection", {
+            unlocked: {},
+          });
+          this.emojiCollection = Object.entries(emojis)
+            .sort(
+              (a, b) => a[0] - b[0] // Sort alphabetical
+            )
+            .map(([word, emoji]) => ({
+              word,
+              emoji,
+              unlocked: Object.keys(collection.unlocked).indexOf(word) >= 0,
+            }));
+          const identify = new amplitude.Identify().set(
+            "emojiCount",
+            this.unlockedEmojis.length
+          );
+          amplitude.getInstance().identify(identify);
+        },
+        levelEnd() {
+          amplitude.getInstance().logEvent("level_end", {
+            level_name: this.level,
+            difficulty: this.difficulty,
+            guesses: this.solved ? this.currentGuessIndex : null,
+            success: this.solved,
+            repeatedGame: this.repeatedGame,
+            guessWords: this.guessWords,
+            newEmojis: this.newEmojis,
+            newEmojiCount: this.newEmojis.length,
+            emojiCount: this.unlockedEmojis.length,
+            ...this.guessWordDictionary,
+          });
+          this.endGameTimer = setTimeout(() => {
+            this.endGame = true;
+            if (!this.solved) {
+              this.masked = true;
+            } else {
+              // Wait until after the victoryEmoji animation to mask
+              this.endGameTimer = setTimeout(() => {
+                this.masked = true;
+              }, 6000);
+            }
+          }, this.target.length * 250 + 1000); // 1 second after last letter shows up
+          const statistics = this.getFromLocalStorage(
+            "statistics",
+            DEFAULT_STATISTICS
+          );
+
+          if (this.solved) {
+            statistics[this.difficulty].success += 1;
+            statistics[this.difficulty].guesses[this.currentGuessIndex] += 1;
+            statistics.solved = statistics.solved || {};
+            statistics.solved[this.puzzleId] =
+              statistics.solved[this.puzzleId] || {};
+            statistics.solved[this.puzzleId][this.difficulty] = true;
+          } else {
+            statistics[this.difficulty].fail += 1;
+          }
+          localStorage.setItem("statistics", JSON.stringify(statistics));
+        },
+        get unlockedEmojis() {
+          return this.emojiCollection.filter((e) => e.unlocked);
+        },
+        get sessionNewEmojis() {
+          return this.unlockedEmojis.filter((e) => e.new);
+        },
+        resetLevel() {
+          localStorage.setItem(
+            `game-state-${this.difficulty}`,
+            JSON.stringify({ repeatedGame: true, puzzleId: this.puzzleId })
+          );
+          amplitude.getInstance().logEvent("level_reset", {
+            level_name: this.level,
+            difficulty: this.difficulty,
+            guesses: this.solved ? this.currentGuessIndex : null,
+            success: this.solved,
+          });
+          this.loadGameState();
+        },
+        mask() {
+          this.masked = true;
+        },
+        unmask() {
+          this.masked = false;
+        },
+        toJson() {
+          return {
+            target: this.target,
+            level: this.level,
+            puzzleId: this.puzzleId,
+            guesses: this.guesses,
+            solved: this.solved,
+            failed: this.failed,
+            repeatedGame: this.repeatedGame,
+            currentGuessIndex: this.currentGuessIndex,
+            cursor: this.cursor,
+            cursorMode: this.cursorMode,
+            newEmojis: this.newEmojis,
+            hintKnowledge: this.hintKnowledge,
+          };
+        },
+        get canShare() {
+          return !!navigator && (!!navigator.share || !!navigator.clipboard);
+        },
+        share() {
+          const title = "Spellie";
+          let text;
+          let shareType;
+          if ((this.solved || this.failed) && this.isGamePage()) {
+            // Spellie #10 (medium)
+            // 🕸️🕸️🕸️🕸️🕸️
+            // 🕸️🕸️🌻🍀🕸️
+            // 🍀🍀🕸️🍀🕸️
+            // 🍀🍀🍀🍀🍀
+            text = `Spellie #${this.puzzleId} (${
+              this.difficulty
+            })\n${guessesAsEmojis(this.guesses, this.settings.sharingEmojis)}`;
+            shareType = "puzzle";
+          } else if (
+            this.page === "#collection" &&
+            this.unlockedEmojis.length === 1
+          ) {
+            // I collected my first emoji in Spellie! 👩‍🦱
+            text = `I collected my first emoji in Spellie! ${this.unlockedEmojis[0].emoji}`;
+            shareType = "emojis";
+          } else if (
+            this.page === "#collection" &&
+            this.unlockedEmojis.length > 1
+          ) {
+            // I've collected 10 emojis in Spellie:
+            // 🐈🐩5️⃣4️⃣👧🌳🖌️♟️🧗‍♀️👩‍🦱
+            text = `I've collected ${
+              this.unlockedEmojis.length
+            } emojis in Spellie:\n${this.unlockedEmojis
+              .map((e) => e.emoji)
+              .join("")}`;
+            shareType = "emojis";
+          } else {
+            // Spellie
+            // ⓦⓞⓡⓓ
+            // 🕸️🌻🍀🕸️
+            // 🤔🤔🤔🤔
+            // ⓗⓔⓡⓞ🦸
+            const wordsMatch = [
+              [
+                { state: "miss" },
+                { state: "present" },
+                { state: "match" },
+                { state: "miss" },
+              ],
+            ];
+            const wordsEmojis = guessesAsEmojis(
+              wordsMatch,
+              this.settings.sharingEmojis
+            );
+            text = `Spellie\nⓦⓞⓡⓓ\n${wordsEmojis}\n🤔🤔🤔🤔\nⓗⓔⓡⓞ🦸`;
+            shareType = "basic";
+          }
+
+          const shareData = {
+            title,
+            text,
+          };
+          if (
+            !!navigator.canShare &&
+            navigator.canShare(shareData) &&
+            onMobile()
+          ) {
+            navigator.share(shareData);
+          } else if (!!navigator.clipboard) {
+            navigator.clipboard.writeText(shareData.text);
+            this.showNotice("Copied to clipboard");
+          }
+          amplitude.getInstance().logEvent("clicked_share", {
+            page: this.page,
+            text,
+            share_type: shareType,
+          });
+        },
+        getFromLocalStorage(key, defaultValue) {
+          const value = localStorage.getItem(key);
+          if (value) {
+            return JSON.parse(value);
+          }
+          return defaultValue;
+        },
+      };
+    }
+
+    // eslint-disable-next-line no-unused-vars
+    function noticesHandler() {
+      return {
+        notice: null,
+        type: null,
+        notify(notice) {
+          const visibleNotice = {
+            ...notice,
+            id: Date.now(),
+            visible: true,
+          };
+          this.notice = visibleNotice;
+          const timeShown = (notice.type === "hint" ? 10 : 5) * 1000;
+          setTimeout(() => {
+            this.remove(visibleNotice.id);
+          }, timeShown);
+        },
+        remove(id) {
+          if (this.notice && this.notice.id === id) {
+            this.notice.visible = false;
+          }
+        },
+        message() {
+          if (!this.notice) return;
+
+          if (this.notice.type === "hint") {
+            return `<strong>Hint 🤔</strong><br>${this.notice.text}`;
+          }
+
+          const stripped = this.notice.text.replace(/(<([^>]+)>)/gi, "");
+          // extract emoji between # characters
+          // (actually detecting with regex has too many edge cases)
+          const emojiMatch = stripped.match(/#(?<emoji>\S+)#/i);
+          if (!emojiMatch) {
+            return stripped;
+          }
+          const emojiImage = `<img src="${getEmojiImage(
+            emojiMatch.groups.emoji
+          )}" class="emoji-image" width="20" alt="${
+            emojiMatch.groups.emoji
+          }" />`;
+          return stripped
+            .replace(/#/g, "")
+            .replace(emojiMatch.groups.emoji, emojiImage);
+        },
+      };
+    }
+
+    function initScalingFontSize() {
+      if ("ResizeObserver" in window === false) {
+        amplitude.getInstance().logEvent("error_encountered", {
+          message: "ResizeObserver not supported",
+        });
+        return;
+      }
+
+      const MAX_FONT_SIZE = 48;
+      const grid = document.querySelector(".guesses-grid");
+
+      /** Set grid font, which in turn impacts all guess tiles */
+      function setGridFontSize(container) {
+        if (!container.offsetWidth) return;
+
+        let tileWidth;
+        const sampleTile = container.querySelector(".guesses-tile");
+        if (sampleTile && sampleTile.offsetWidth) {
+          // found a tile, so base it on the tile dimensions
+          tileWidth = sampleTile.offsetWidth;
+        } else if (container.offsetHeight < container.offsetWidth) {
+          // no tile (probably not yet rendered), so estimate it based on container
+          tileWidth = container.offsetHeight / 6;
+        } else {
+          tileWidth = container.offsetWidth / 6;
+        }
+
+        const fontSize = 0.7 * tileWidth;
+        grid.style.fontSize = `${Math.min(MAX_FONT_SIZE, fontSize)}px`;
+      }
+
+      const resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.target) {
+            setGridFontSize(entry.target);
+          }
+        }
+      });
+
+      resizeObserver.observe(grid);
+    }
+
+    window.onerror = function onError(message, url, lineNo, columnNo, error) {
+      try {
+        if (url && url.includes("extension://")) {
+          // Ignore problems with extensions
+          return false;
+        }
+        amplitude.getInstance().logEvent("error_encountered", {
+          message,
+          url: window.location.href,
+          source: `${url}:${lineNo}:${columnNo}`,
+          error: JSON.stringify(error),
+        });
+      } catch (err) {
+        // If we're having problems talking to amplitude
+        // Don't throw another error in here
+        console.error("Error encountered.", err);
+      }
+
+      return false;
+    };
+  </script>
+</html>
