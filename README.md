@@ -2,7 +2,7 @@
 
 A kid-friendly version of the popular Wordle game
 
-Try it out: [Spellie - Wordle for Kids](https://spelliegame.com)
+Try it out: [Spellie - Wordle for Kids](https://nivethaa15.github.io/Spellie-game/)
 
 Differences from classic Wordle:
 
@@ -20,4 +20,4 @@ Differences from classic Wordle:
 
 Future enhancements:
 
-- See our [Issues](https://github.com/canadianveggie/spellie/issues) backlog
+- See our [Issues](https://github.com/Nivethaa15/spellie-game/issues) backlog
